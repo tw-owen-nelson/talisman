@@ -17,9 +17,6 @@ const (
 	//IgnoreDetectorCommentPattern represents a special comment that ignores only certain detectors
 	IgnoreDetectorCommentPattern string = "^ignore:([^\\s]+).*$"
 
-	//DefaultIgnoreFileName represents the name of the default file in which the ignore patterns are configured
-	DefaultIgnoreFileName string = ".talismanignore"
-
 	//DefaultRCFileName represents the name of default file in which all the ignore patterns are configured in new version
 	DefaultRCFileName string = ".talismanrc"
 )
@@ -29,21 +26,27 @@ const (
 type Ignores struct {
 	patterns []Ignore
 }
+
 //Ignore represents a single pattern and its comment
 type Ignore struct {
-	pattern string
-	comment string
+	pattern          string
+	comment          string
 	ignoredDetectors []string
 }
 
 type FileIgnoreConfig struct {
-	FileName        string `yaml:"filename"`
-	Checksum        string `yaml:"checksum"`
+	FileName        string   `yaml:"filename"`
+	Checksum        string   `yaml:"checksum"`
 	IgnoreDetectors []string `yaml:"ignore_detectors"`
 }
 
+type ScopeConfig struct {
+	ScopeName string `yaml:"scope"`
+}
+
 type TalismanRCIgnore struct {
-	FileIgnoreConfig []FileIgnoreConfig  `yaml:"fileignoreconfig"`
+	FileIgnoreConfig []FileIgnoreConfig `yaml:"fileignoreconfig"`
+	ScopeConfig      []ScopeConfig      `yaml:"scopeconfig"`
 }
 
 func (ignore TalismanRCIgnore) IsEmpty() bool {
@@ -58,7 +61,6 @@ func ReadConfigFromRCFile(repoFileRead func(string) ([]byte, error)) TalismanRCI
 	return NewTalismanRCIgnore(fileContents)
 }
 
-
 func NewTalismanRCIgnore(fileContents []byte) (TalismanRCIgnore) {
 	talismanRCIgnore := TalismanRCIgnore{}
 	err := yaml.Unmarshal([]byte(fileContents), &talismanRCIgnore)
@@ -70,17 +72,6 @@ func NewTalismanRCIgnore(fileContents []byte) (TalismanRCIgnore) {
 	return talismanRCIgnore
 }
 
-//ReadIgnoresFromFile builds an Ignores from the lines configured in a File.
-//The file itself is supplied as a File Read operation, which is specified, by default, as reading a file in the root of the repository.
-//The file name that is read is DEFAULT_IGNORE_FILE_NAME (".talismanignore")
-func ReadIgnoresFromFile(repoFileRead func(string) ([]byte, error)) Ignores {
-	contents, err := repoFileRead(DefaultIgnoreFileName)
-	if err != nil {
-		panic(err)
-	}
-	return NewIgnores(strings.Split(string(contents), "\n")...)
-}
-
 func NewIgnore(pattern string, comment string) Ignore {
 	var ignoredDetectors []string
 	ignorePattern := regexp.MustCompile(IgnoreDetectorCommentPattern)
@@ -90,8 +81,8 @@ func NewIgnore(pattern string, comment string) Ignore {
 	}
 
 	return Ignore{
-		pattern: pattern,
-		comment: comment,
+		pattern:          pattern,
+		comment:          comment,
 		ignoredDetectors: ignoredDetectors,
 	}
 }
@@ -100,7 +91,6 @@ func (i FileIgnoreConfig) isEffective(detectorName string) bool {
 	return !isEmptyString(i.FileName) &&
 		contains(i.IgnoreDetectors, detectorName)
 }
-
 
 //NewIgnores builds a new Ignores with the patterns specified in the ignoreSpecs
 //Empty lines and comments are ignored.
