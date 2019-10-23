@@ -3,6 +3,9 @@ set -euo pipefail
 shopt -s extglob
 
 DEBUG=${DEBUG:-''}
+
+[[ -n "$DEBUG" ]] && set -x
+
 FORCE_DOWNLOAD=${FORCE_DOWNLOAD:-''}
 
 # default is a pre-commit hook; if "pre-push" is the first arg to the script, then it sets up as pre-push
