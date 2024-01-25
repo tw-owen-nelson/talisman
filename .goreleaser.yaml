@@ -20,7 +20,7 @@ builds:
 
 release:
   draft: true
-  replace_existing_draft: false
+  replace_existing_draft: true
   mode: keep-existing
 
 archives:
