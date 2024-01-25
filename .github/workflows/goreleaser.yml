@@ -32,15 +32,13 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: "${{ github.ref_name }}",
-            })
+            }).then(response => response.data.body)
       - name: test
         run: echo '${{ steps.release-notes.outputs.result }}'
-      - name: test
-        run: echo '${{ steps.release-notes.outputs.result.body }}'
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean --release-notes '${{ steps.release-notes.outputs.result.body }}'
+          args: release --clean --release-notes '${{ steps.release-notes.outputs.result }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
