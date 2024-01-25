@@ -27,6 +27,7 @@ jobs:
         id: release-notes
         uses: actions/github-script@v7
         with:
+          result-encoding: string
           script: |
             return github.rest.repos.generateReleaseNotes({
               owner: context.repo.owner,
