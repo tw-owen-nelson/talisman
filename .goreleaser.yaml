@@ -20,7 +20,8 @@ builds:
 
 release:
   draft: true
-  replace_existing_draft: true
+  replace_existing_draft: false
+  mode: keep-existing
 
 archives:
   - meta: false
