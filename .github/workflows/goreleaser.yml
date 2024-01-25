@@ -39,6 +39,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean --release-notes <<<${{ steps.release-notes.outputs.result }}
+          args: release --clean --release-notes <<<"${{ steps.release-notes.outputs.result }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
