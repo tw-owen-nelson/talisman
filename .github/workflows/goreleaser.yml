@@ -33,12 +33,12 @@ jobs:
               repo: context.repo.repo,
               tag_name: "${{ github.ref_name }}",
             }).then(response => response.data.body)
-      - name: test
-        run: echo '${{ steps.release-notes.outputs.result }}'
+      - name: Write release notes to file
+        run: echo '${{ steps.release-notes.outputs.result }}' > release-notes.md
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean --release-notes <(echo '${{ steps.release-notes.outputs.result }}')
+          args: release --clean --release-notes release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
