@@ -52,8 +52,6 @@ var options struct {
 	ShouldProfile   bool
 }
 
-//var options Options
-
 func init() {
 	log.SetOutput(os.Stderr)
 	talismanInput = os.Stdin
@@ -97,6 +95,7 @@ func init() {
 
 func main() {
 	flag.Parse()
+	setLogLevel()
 
 	if flag.NFlag() == 0 {
 		flag.PrintDefaults()
@@ -108,11 +107,8 @@ func main() {
 		os.Exit(EXIT_SUCCESS)
 	}
 
-	if options.GitHook != "" {
-		if !(options.GitHook == PreCommit || options.GitHook == PrePush) {
-			fmt.Println(fmt.Errorf("githook should be %s or %s, but got %s", PreCommit, PrePush, options.GitHook))
-			os.Exit(EXIT_FAILURE)
-		}
+	if err := validate(); err != nil {
+		os.Exit(EXIT_FAILURE)
 	}
 
 	if options.ShouldProfile {
@@ -128,21 +124,11 @@ func run(promptContext prompt.PromptContext) (returnCode int) {
 	start := time.Now()
 	defer func() { fmt.Printf("Talisman done in %v\n", time.Since(start)) }()
 
-	if err := validateGitExecutable(afero.NewOsFs(), runtime.GOOS); err != nil {
-		log.Errorf("error validating git executable: %v", err)
-		return 1
-	}
-
-	setLogLevel()
-
-	if options.GitHook == "" {
-		options.GitHook = PrePush
-	}
-
 	optionsBytes, _ := json.Marshal(options)
 	fields := make(map[string]interface{})
 	_ = json.Unmarshal(optionsBytes, &fields)
 	log.WithFields(fields).Debug("Talisman execution environment")
+
 	defer utility.DestroyHashers()
 	if options.Checksum != "" {
 		log.Infof("Running %s patterns against checksum calculator", options.Checksum)
@@ -183,6 +169,16 @@ func run(promptContext prompt.PromptContext) (returnCode int) {
 		}
 		return NewPrePushHook(talismanInput).Run(talismanrcForScan, promptContext)
 	}
+}
+
+func validate() error {
+	if !(options.GitHook == "" || options.GitHook == PreCommit || options.GitHook == PrePush) {
+		return fmt.Errorf("githook should be %s or %s, but got %s", PreCommit, PrePush, options.GitHook)
+	}
+	if err := validateGitExecutable(afero.NewOsFs(), runtime.GOOS); err != nil {
+		return fmt.Errorf("error validating git executable: %v", err)
+	}
+	return nil
 }
 
 func validateGitExecutable(fs afero.Fs, operatingSystem string) error {
