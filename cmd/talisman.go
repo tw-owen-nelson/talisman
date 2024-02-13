@@ -21,8 +21,7 @@ import (
 )
 
 var (
-	showVersion bool
-	//Version : Version of talisman
+	showVersion   bool
 	Version       = "Development Build"
 	interactive   bool
 	talismanInput io.Reader
@@ -107,10 +106,6 @@ func main() {
 		os.Exit(EXIT_SUCCESS)
 	}
 
-	if err := validate(); err != nil {
-		os.Exit(EXIT_FAILURE)
-	}
-
 	if options.ShouldProfile {
 		stopProfFunc := setupProfiling()
 		defer stopProfFunc()
@@ -128,6 +123,13 @@ func run(promptContext prompt.PromptContext) (returnCode int) {
 	fields := make(map[string]interface{})
 	_ = json.Unmarshal(optionsBytes, &fields)
 	log.WithFields(fields).Debug("Talisman execution environment")
+
+	if err := validate(); err != nil {
+		log.Error(err)
+		return EXIT_FAILURE
+	}
+
+	NewUpdater().Check(Version)
 
 	defer utility.DestroyHashers()
 	if options.Checksum != "" {
