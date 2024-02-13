@@ -2,6 +2,7 @@ module talisman
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.2.12
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/common-nighthawk/go-figure v0.0.0-20200609044655-c4b36f998cf2
