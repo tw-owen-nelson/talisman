@@ -21,7 +21,8 @@ import (
 )
 
 var (
-	showVersion   bool
+	showVersion   = false
+	update        = false
 	Version       = "Development Build"
 	interactive   bool
 	talismanInput io.Reader
@@ -90,6 +91,9 @@ func init() {
 	flag.BoolVarP(&options.ShouldProfile,
 		"profile", "f", false,
 		"profile cpu and memory usage of talisman")
+	flag.BoolVarP(&update,
+		"update", "u", false,
+		"update talisman to latest version")
 }
 
 func main() {
@@ -98,6 +102,14 @@ func main() {
 
 	if flag.NFlag() == 0 {
 		flag.PrintDefaults()
+		os.Exit(EXIT_SUCCESS)
+	}
+
+	if update {
+		if err := NewUpdater().Update(Version); err != nil {
+			log.Error(err)
+			os.Exit(EXIT_FAILURE)
+		}
 		os.Exit(EXIT_SUCCESS)
 	}
 
