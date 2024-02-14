@@ -58,3 +58,7 @@ type EagerClient struct {
 func (u *EagerClient) CanUpdateFrom(_ string) (bool, string) {
 	return true, u.nextVersion
 }
+
+func (u *EagerClient) Update(_ string) error {
+	return nil
+}
