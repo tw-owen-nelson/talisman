@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/blang/semver"
-	"github.com/rhysd/go-github-selfupdate/selfupdate"
+	"github.com/creativeprojects/go-selfupdate"
 )
 
 func UpdateMessage(newVersion string) string {
@@ -51,23 +52,21 @@ type GitHubClient struct {
 	repoSlug string
 }
 
-func (u *GitHubClient) CanUpdateFrom(current string) (bool, string) {
-	currentVersion, err := semver.ParseTolerant(current)
-	if err != nil {
+func (u *GitHubClient) CanUpdateFrom(currentVersion string) (bool, string) {
+	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		return false, ""
 	}
-	release, _, err := selfupdate.DetectLatest(u.repoSlug)
+	release, _, err := selfupdate.DetectLatest(context.TODO(), selfupdate.ParseSlug(u.repoSlug))
 	if err != nil || release == nil {
 		return false, ""
 	}
-	return release.Version.GT(currentVersion), release.Version.String()
+	return release.GreaterThan(currentVersion), release.Version()
 }
 
-func (u *GitHubClient) Update(current string) error {
-	currentVersion, err := semver.ParseTolerant(current)
-	if err != nil {
-		return fmt.Errorf("unexpected value for currently installed version: %s", current)
+func (u *GitHubClient) Update(currentVersion string) error {
+	if _, err := semver.ParseTolerant(currentVersion); err != nil {
+		return fmt.Errorf("unexpected value for currently installed version: %s", currentVersion)
 	}
-	_, err = selfupdate.UpdateSelf(currentVersion, u.repoSlug)
+	_, err := selfupdate.UpdateSelf(context.TODO(), currentVersion, selfupdate.ParseSlug(u.repoSlug))
 	return err
 }
