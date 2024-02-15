@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -377,7 +378,13 @@ func runTalisman(git *git_testing.GitTesting) int {
 	if options.GitHook == PrePush {
 		talismanInput = mockStdIn(git.EarliestCommit(), git.LatestCommit())
 	}
-	return run(promptContext)
+	return run(promptContext, deadContext())
+}
+
+func deadContext() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return ctx
 }
 
 type Operation func(dirName string)

@@ -33,40 +33,40 @@ type Updater struct {
 }
 
 type UpdateClient interface {
-	CanUpdateFrom(string) (bool, string)
-	Update(string) error
+	CanUpdateFrom(context.Context, string) (bool, string)
+	Update(context.Context, string) error
 }
 
-func (u *Updater) Check(current string) {
-	updateAvailable, newVersion := u.client.CanUpdateFrom(current)
+func (u *Updater) Check(ctx context.Context, current string) {
+	updateAvailable, newVersion := u.client.CanUpdateFrom(ctx, current)
 	if updateAvailable {
 		fmt.Fprint(u.output, UpdateMessage(newVersion))
 	}
 }
 
-func (u *Updater) Update(current string) error {
-	return u.client.Update(current)
+func (u *Updater) Update(ctx context.Context, current string) error {
+	return u.client.Update(ctx, current)
 }
 
 type GitHubClient struct {
 	repoSlug string
 }
 
-func (u *GitHubClient) CanUpdateFrom(currentVersion string) (bool, string) {
+func (u *GitHubClient) CanUpdateFrom(ctx context.Context, currentVersion string) (bool, string) {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		return false, ""
 	}
-	release, _, err := selfupdate.DetectLatest(context.TODO(), selfupdate.ParseSlug(u.repoSlug))
+	release, _, err := selfupdate.DetectLatest(ctx, selfupdate.ParseSlug(u.repoSlug))
 	if err != nil || release == nil {
 		return false, ""
 	}
 	return release.GreaterThan(currentVersion), release.Version()
 }
 
-func (u *GitHubClient) Update(currentVersion string) error {
+func (u *GitHubClient) Update(ctx context.Context, currentVersion string) error {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		return fmt.Errorf("unexpected value for currently installed version: %s", currentVersion)
 	}
-	_, err := selfupdate.UpdateSelf(context.TODO(), currentVersion, selfupdate.ParseSlug(u.repoSlug))
+	_, err := selfupdate.UpdateSelf(ctx, currentVersion, selfupdate.ParseSlug(u.repoSlug))
 	return err
 }
