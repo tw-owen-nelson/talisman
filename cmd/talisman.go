@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -106,7 +107,7 @@ func main() {
 	}
 
 	if update {
-		if err := NewUpdater().Update(Version); err != nil {
+		if err := NewUpdater().Update(context.Background(), Version); err != nil {
 			log.Error(err)
 			os.Exit(EXIT_FAILURE)
 		}
@@ -124,10 +125,10 @@ func main() {
 	}
 
 	promptContext := prompt.NewPromptContext(interactive, prompt.NewPrompt())
-	os.Exit(run(promptContext))
+	os.Exit(run(promptContext, context.TODO()))
 }
 
-func run(promptContext prompt.PromptContext) (returnCode int) {
+func run(promptContext prompt.PromptContext, updateContext context.Context) (returnCode int) {
 	start := time.Now()
 	defer func() { fmt.Printf("Talisman done in %v\n", time.Since(start)) }()
 
@@ -141,7 +142,7 @@ func run(promptContext prompt.PromptContext) (returnCode int) {
 		return EXIT_FAILURE
 	}
 
-	NewUpdater().Check(Version)
+	NewUpdater().Check(updateContext, Version)
 
 	defer utility.DestroyHashers()
 	if options.Checksum != "" {
