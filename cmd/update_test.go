@@ -2,10 +2,11 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/blang/semver"
-	"github.com/rhysd/go-github-selfupdate/selfupdate"
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,9 +33,8 @@ func TestNoUpdateAvailableIfNoReleaseFound(t *testing.T) {
 }
 
 func TestNoUpdateAvailableIfOnCurrentVersion(t *testing.T) {
-	currentRelease, _, _ := selfupdate.DetectLatest("thoughtworks/talisman")
-	currentVersion := currentRelease.Version.String()
-	updateAvailable, _ := u.CanUpdateFrom(currentVersion)
+	currentRelease, _, _ := selfupdate.DetectLatest(context.TODO(), selfupdate.ParseSlug("thoughtworks/talisman"))
+	updateAvailable, _ := u.CanUpdateFrom(currentRelease.Version())
 	assert.False(t, updateAvailable, "There is no update available if on the current version")
 }
 
