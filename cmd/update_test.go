@@ -5,60 +5,45 @@ import (
 	"context"
 	"testing"
 
-	"github.com/blang/semver"
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/stretchr/testify/assert"
 )
 
-var u = GitHubClient{repoSlug: "thoughtworks/talisman"}
-
 func TestIfUpdateAvailable(t *testing.T) {
-	oldVersion, _ := semver.ParseTolerant("v1.20.0")
-	updateAvailable, availableVersion := u.CanUpdateFrom(context.Background(), oldVersion.String())
-	assert.True(t, updateAvailable, "There is an update available for this old version.")
-	newVersion, _ := semver.ParseTolerant(availableVersion)
-	assert.True(t, newVersion.GT(oldVersion), "The update available is a greater semantic version.")
+	var output bytes.Buffer
+	um := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("thoughtworks/talisman"), output: &output}
+	oldVersion := "v1.20.0"
+	currentRelease, _, _ := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("thoughtworks/talisman"))
+	um.CanUpdateFrom(context.Background(), oldVersion)
+	assert.True(t, currentRelease.GreaterThan(oldVersion), "There is an update available for this old version.")
+	assert.Equal(t, UpdateMessage(currentRelease.Version()), output.String(), "There is an update available for this old version.")
 }
-
-func TestNoUpdateAvailableForInvalidQuery(t *testing.T) {
-	invalidRepoClient := GitHubClient{repoSlug: "/bad-repo"}
-	updateAvailable, _ := invalidRepoClient.CanUpdateFrom(context.Background(), "v1.32.0")
-	assert.False(t, updateAvailable, "We should not suggest updating if there might not be an update. This simulates network errors or GitHub rate limiting.")
+func TestNoUpdateAvailableForInvalidRepository(t *testing.T) {
+	var output bytes.Buffer
+	invalidUm := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("/bad-repo"), output: &output}
+	invalidUm.CanUpdateFrom(context.Background(), "v1.32.0")
+	assert.True(t, output.String() == "", "We should not suggest updating if there might not be an update. This simulates network errors or GitHub rate limiting.")
 }
 
 func TestNoUpdateAvailableIfNoReleaseFound(t *testing.T) {
-	noReleaseClient := GitHubClient{repoSlug: "thoughtworks/thoughtworks.github.io"}
-	updateAvailable, _ := noReleaseClient.CanUpdateFrom(context.Background(), "0.0.0")
-	assert.False(t, updateAvailable, "There is no update available if there are no releases")
+	var output bytes.Buffer
+	invalidUm := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("thoughtworks/thoughtworks.github.io"), output: &output}
+	invalidUm.CanUpdateFrom(context.Background(), "v0.0.0")
+	assert.True(t, output.String() == "", "There is no update available if there are no releases")
 }
 
 func TestNoUpdateAvailableIfOnCurrentVersion(t *testing.T) {
-	currentRelease, _, _ := selfupdate.DetectLatest(context.TODO(), selfupdate.ParseSlug("thoughtworks/talisman"))
-	updateAvailable, _ := u.CanUpdateFrom(context.Background(), currentRelease.Version())
-	assert.False(t, updateAvailable, "There is no update available if on the current version")
+	currentRelease, _, _ := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("thoughtworks/talisman"))
+	var output bytes.Buffer
+	um := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("thoughtworks/talisman"), output: &output}
+	um.CanUpdateFrom(context.Background(), currentRelease.Version())
+	assert.True(t, output.String() == "", "There is no update available if on the current version")
 }
 
 func TestNoUpdateIfUnexpectedCurrentVersion(t *testing.T) {
-	updateAvailable, _ := u.CanUpdateFrom(context.Background(), "Local dev version")
-	assert.False(t, updateAvailable, "There is no update available if not on a published version")
-}
-
-func TestPrintsMessageWhenUpdateAvailable(t *testing.T) {
-	newVersion := "v3.25.1"
 	var output bytes.Buffer
-	updater := Updater{client: &EagerClient{nextVersion: newVersion}, output: &output}
-	updater.Check(context.Background(), "")
-	assert.Equal(t, UpdateMessage(newVersion), output.String())
-}
+	um := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("thoughtworks/talisman"), output: &output}
+	um.CanUpdateFrom(context.Background(), "Local dev version")
+	assert.True(t, output.String() == "", "There is no update available if not on a published version")
 
-type EagerClient struct {
-	nextVersion string
-}
-
-func (u *EagerClient) CanUpdateFrom(ctx context.Context, _ string) (bool, string) {
-	return true, u.nextVersion
-}
-
-func (u *EagerClient) Update(ctx context.Context, _ string) error {
-	return nil
 }

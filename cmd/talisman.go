@@ -142,7 +142,7 @@ func run(promptContext prompt.PromptContext, updateContext context.Context) (ret
 		return EXIT_FAILURE
 	}
 
-	NewUpdater().Check(updateContext, Version)
+	NewUpdater().CanUpdateFrom(updateContext, Version)
 
 	defer utility.DestroyHashers()
 	if options.Checksum != "" {
