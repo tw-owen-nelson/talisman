@@ -107,11 +107,7 @@ func main() {
 	}
 
 	if update {
-		if err := NewUpdater().Update(context.Background(), Version); err != nil {
-			log.Error(err)
-			os.Exit(EXIT_FAILURE)
-		}
-		os.Exit(EXIT_SUCCESS)
+		os.Exit(NewUpdater().Update(context.Background(), Version))
 	}
 
 	if showVersion {
@@ -142,7 +138,7 @@ func run(promptContext prompt.PromptContext, updateContext context.Context) (ret
 		return EXIT_FAILURE
 	}
 
-	NewUpdater().CanUpdateFrom(updateContext, Version)
+	NewUpdater().Check(updateContext, Version)
 
 	defer utility.DestroyHashers()
 	if options.Checksum != "" {
