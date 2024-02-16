@@ -8,6 +8,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/creativeprojects/go-selfupdate"
+	log "github.com/sirupsen/logrus"
 )
 
 func UpdateMessage(newVersion string) string {
@@ -39,7 +40,7 @@ type UpdateManager struct {
 	output     io.Writer
 }
 
-func (um *UpdateManager) CanUpdateFrom(ctx context.Context, currentVersion string) {
+func (um *UpdateManager) Check(ctx context.Context, currentVersion string) {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		return
 	}
@@ -52,10 +53,16 @@ func (um *UpdateManager) CanUpdateFrom(ctx context.Context, currentVersion strin
 	}
 }
 
-func (um *UpdateManager) Update(ctx context.Context, currentVersion string) error {
+func (um *UpdateManager) Update(ctx context.Context, currentVersion string) int {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
-		return fmt.Errorf("unexpected value for currently installed version: %s", currentVersion)
+		log.Errorf("unexpected value for currently installed version: %s", currentVersion)
+		return EXIT_FAILURE
 	}
-	_, err := um.updater.UpdateSelf(ctx, currentVersion, um.repository)
-	return err
+	updated, err := um.updater.UpdateSelf(ctx, currentVersion, um.repository)
+	if err != nil {
+		log.Error(err)
+		return EXIT_FAILURE
+	}
+	fmt.Fprintf(um.output, "Talisman updated to %s\n", updated.Version())
+	return EXIT_SUCCESS
 }
