@@ -5,20 +5,24 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/blang/semver"
 	"github.com/creativeprojects/go-selfupdate"
 	log "github.com/sirupsen/logrus"
 )
 
-func UpdateMessage(newVersion string) string {
-	return fmt.Sprintf(
-		`Talisman version %s is available.
+const MessageTemplate = `Talisman version %s is available.
 To upgrade, run:
 
-	talisman -u
+	%s
 
-`, newVersion)
+`
+
+type UpdateManager struct {
+	updater    *selfupdate.Updater
+	repository selfupdate.Repository
+	output     io.Writer
 }
 
 func NewUpdater() *UpdateManager {
@@ -34,12 +38,6 @@ func NewUpdater() *UpdateManager {
 	}
 }
 
-type UpdateManager struct {
-	updater    *selfupdate.Updater
-	repository selfupdate.Repository
-	output     io.Writer
-}
-
 func (um *UpdateManager) Check(ctx context.Context, currentVersion string) {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		return
@@ -49,7 +47,11 @@ func (um *UpdateManager) Check(ctx context.Context, currentVersion string) {
 		return
 	}
 	if release.GreaterThan(currentVersion) {
-		fmt.Fprint(um.output, UpdateMessage(release.Version()))
+		executable, err := os.Executable()
+		if err != nil {
+			executable = ""
+		}
+		fmt.Fprint(um.output, UpdateMessage(executable, release.Version()))
 	}
 }
 
@@ -65,4 +67,17 @@ func (um *UpdateManager) Update(ctx context.Context, currentVersion string) int 
 	}
 	fmt.Fprintf(um.output, "Talisman updated to %s\n", updated.Version())
 	return EXIT_SUCCESS
+}
+
+func UpdateMessage(path string, newVersion string) string {
+	upgradeCommand := "talisman -u"
+	if IsHomebrewInstall(path) {
+		upgradeCommand = "brew upgrade talisman"
+	}
+	return fmt.Sprintf(MessageTemplate, newVersion, upgradeCommand)
+}
+
+func IsHomebrewInstall(path string) bool {
+	link, _ := os.Readlink(path)
+	return link != "" && strings.Contains(link, "Cellar")
 }
