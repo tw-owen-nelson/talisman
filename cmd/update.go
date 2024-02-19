@@ -60,6 +60,11 @@ func (u *Updater) Update(ctx context.Context, currentVersion string) int {
 		log.Errorf("unexpected value for currently installed version: %s", currentVersion)
 		return EXIT_FAILURE
 	}
+	executable, _ := os.Executable()
+	if IsHomebrewInstall(executable) {
+		log.Error("Detected homebrew-managed talisman install. Please upgrade through homebrew.")
+		return EXIT_FAILURE
+	}
 	updated, err := u.client.UpdateSelf(ctx, currentVersion, u.repository)
 	if err != nil {
 		log.Error(err)
