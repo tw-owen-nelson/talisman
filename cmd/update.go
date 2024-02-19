@@ -19,30 +19,30 @@ To upgrade, run:
 
 `
 
-type UpdateManager struct {
-	updater    *selfupdate.Updater
+type Updater struct {
+	client     *selfupdate.Updater
 	repository selfupdate.Repository
 	output     io.Writer
 }
 
-func NewUpdater() *UpdateManager {
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums"}})
+func NewUpdater() *Updater {
+	client, err := selfupdate.NewUpdater(selfupdate.Config{Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums"}})
 	if err != nil {
 		panic(err)
 	}
 	repository := selfupdate.ParseSlug("thoughtworks/talisman")
-	return &UpdateManager{
-		updater:    updater,
+	return &Updater{
+		client:     client,
 		repository: &repository,
 		output:     os.Stdout,
 	}
 }
 
-func (um *UpdateManager) Check(ctx context.Context, currentVersion string) {
+func (u *Updater) Check(ctx context.Context, currentVersion string) {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		return
 	}
-	release, _, err := um.updater.DetectLatest(ctx, um.repository)
+	release, _, err := u.client.DetectLatest(ctx, u.repository)
 	if err != nil || release == nil {
 		return
 	}
@@ -51,21 +51,21 @@ func (um *UpdateManager) Check(ctx context.Context, currentVersion string) {
 		if err != nil {
 			executable = ""
 		}
-		fmt.Fprint(um.output, UpdateMessage(executable, release.Version()))
+		fmt.Fprint(u.output, UpdateMessage(executable, release.Version()))
 	}
 }
 
-func (um *UpdateManager) Update(ctx context.Context, currentVersion string) int {
+func (u *Updater) Update(ctx context.Context, currentVersion string) int {
 	if _, err := semver.ParseTolerant(currentVersion); err != nil {
 		log.Errorf("unexpected value for currently installed version: %s", currentVersion)
 		return EXIT_FAILURE
 	}
-	updated, err := um.updater.UpdateSelf(ctx, currentVersion, um.repository)
+	updated, err := u.client.UpdateSelf(ctx, currentVersion, u.repository)
 	if err != nil {
 		log.Error(err)
 		return EXIT_FAILURE
 	}
-	fmt.Fprintf(um.output, "Talisman updated to %s\n", updated.Version())
+	fmt.Fprintf(u.output, "Talisman updated to %s\n", updated.Version())
 	return EXIT_SUCCESS
 }
 

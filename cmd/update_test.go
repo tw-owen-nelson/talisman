@@ -11,52 +11,52 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIfUpdateAvailable(t *testing.T) {
-	um := NewUpdater()
-	output := SpyOnUpdater(um)
+func TestUpdateAvailable(t *testing.T) {
+	updater := NewUpdater()
+	output := SpyOn(updater)
 	oldVersion := "v1.20.0"
 	currentRelease, _, _ := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("thoughtworks/talisman"))
-	um.Check(context.Background(), oldVersion)
+	updater.Check(context.Background(), oldVersion)
 	assert.True(t, currentRelease.GreaterThan(oldVersion), "There is an update available for this old version.")
 	assert.Equal(t, UpdateMessage("", currentRelease.Version()), output.String(), "There is an update available for this old version.")
 }
 
-func TestNoUpdateAvailableForInvalidRepository(t *testing.T) {
-	invalidUm := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("/bad-repo")}
-	output := SpyOnUpdater(&invalidUm)
-	invalidUm.Check(context.Background(), "v1.32.0")
+func TestNoUpdateAvailableForInvalidUpdateQuery(t *testing.T) {
+	invalidUpdater := Updater{client: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("/bad-repo")}
+	output := SpyOn(&invalidUpdater)
+	invalidUpdater.Check(context.Background(), "v1.32.0")
 	assert.True(t, output.String() == "", "We should not suggest updating if there might not be an update. This simulates network errors or GitHub rate limiting.")
 }
 
 func TestNoUpdateAvailableIfNoReleaseFound(t *testing.T) {
-	invalidUm := UpdateManager{updater: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("thoughtworks/thoughtworks.github.io")}
-	output := SpyOnUpdater(&invalidUm)
-	invalidUm.Check(context.Background(), "v0.0.0")
+	invalidUpdater := Updater{client: selfupdate.DefaultUpdater(), repository: selfupdate.ParseSlug("thoughtworks/thoughtworks.github.io")}
+	output := SpyOn(&invalidUpdater)
+	invalidUpdater.Check(context.Background(), "v0.0.0")
 	assert.True(t, output.String() == "", "There is no update available if there are no releases")
 }
 
 func TestNoUpdateAvailableIfOnCurrentVersion(t *testing.T) {
 	currentRelease, _, _ := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("thoughtworks/talisman"))
-	um := NewUpdater()
-	output := SpyOnUpdater(um)
-	um.Check(context.Background(), currentRelease.Version())
+	updater := NewUpdater()
+	output := SpyOn(updater)
+	updater.Check(context.Background(), currentRelease.Version())
 	assert.True(t, output.String() == "", "There is no update available if on the current version")
 }
 
-func TestNoUpdateIfUnexpectedCurrentVersion(t *testing.T) {
-	um := NewUpdater()
-	output := SpyOnUpdater(um)
-	um.Check(context.Background(), "Local dev version")
+func TestNoUpdateAvailableIfUnexpectedCurrentVersion(t *testing.T) {
+	updater := NewUpdater()
+	output := SpyOn(updater)
+	updater.Check(context.Background(), "Local dev version")
 	assert.True(t, output.String() == "", "There is no update available if not on a published version")
 }
 
-func SpyOnUpdater(um *UpdateManager) *bytes.Buffer {
+func SpyOn(updater *Updater) *bytes.Buffer {
 	var output bytes.Buffer
-	um.output = &output
+	updater.output = &output
 	return &output
 }
 
-func TestInstallThroughTalismanForNativeInstall(t *testing.T) {
+func TestSuggestTalismanUpgradeForNativeInstall(t *testing.T) {
 	nativeInstallation, cleanUp := InstallTalisman()
 	defer cleanUp()
 	talismanUpgradeMessage := `Talisman version v1.32.0 is available.
@@ -68,7 +68,7 @@ To upgrade, run:
 	assert.Equal(t, talismanUpgradeMessage, UpdateMessage(nativeInstallation, "v1.32.0"), "Should give homebrew command if installed by homebrew")
 }
 
-func TestAssumeNativeInstallIfUnableToDetectPath(t *testing.T) {
+func TestSuggestTalismanUpgradeIfUnknownPath(t *testing.T) {
 	talismanUpgradeMessage := `Talisman version v1.32.0 is available.
 To upgrade, run:
 
@@ -78,7 +78,7 @@ To upgrade, run:
 	assert.Equal(t, talismanUpgradeMessage, UpdateMessage("", "v1.32.0"), "Should give homebrew command if installed by homebrew")
 }
 
-func TestDeferToPackageManagerForManagedInstall(t *testing.T) {
+func TestSuggestBrewUpgradeForBrewInstall(t *testing.T) {
 	brewTalisman, cleanUp := BrewInstallTalisman()
 	defer cleanUp()
 
